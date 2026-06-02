@@ -2,242 +2,272 @@
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>प्रबुद्ध नागरिक संवाद — Gate Scanner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Gate Scanner — प्रबुद्ध नागरिक संवाद</title>
+<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', Arial, sans-serif; background: #F5F0E8; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
-.header { width: 100%; background: #F97D09; padding: 14px 20px; text-align: center; border-bottom: 4px solid #278D27; }
-.header h1 { color: #fff; font-size: 18px; font-weight: 700; }
-.header p { color: rgba(255,255,255,0.85); font-size: 12px; margin-top: 3px; }
-.container { width: 100%; max-width: 480px; padding: 20px 16px; }
-.card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 16px; }
-.input-row { display: flex; gap: 10px; margin-bottom: 12px; }
-input[type=text] { flex: 1; padding: 12px 14px; border: 2px solid #E0D8CC; border-radius: 8px; font-size: 16px; letter-spacing: 2px; text-transform: uppercase; outline: none; }
-input[type=text]:focus { border-color: #F97D09; }
-button { padding: 12px 18px; background: #F97D09; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
-button:active { background: #d96a00; }
-.btn-scan { width: 100%; padding: 14px; background: #278D27; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 8px; }
-.btn-scan:active { background: #1e6e1e; }
-#video-container { display: none; margin-bottom: 12px; }
-video { width: 100%; border-radius: 8px; border: 2px solid #E0D8CC; }
-.result { border-radius: 12px; padding: 20px; text-align: center; display: none; margin-bottom: 16px; }
-.result.valid { background: #E8F5E9; border: 2px solid #278D27; }
-.result.duplicate { background: #FFF8E1; border: 2px solid #F97D09; }
-.result.invalid { background: #FFEBEE; border: 2px solid #C62828; }
-.result-icon { font-size: 48px; margin-bottom: 10px; }
-.result-name { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
-.result-table { font-size: 16px; margin-bottom: 4px; }
-.result-msg { font-size: 13px; color: #666; }
-.result-time { font-size: 12px; color: #999; margin-top: 6px; }
-.btn-reset { margin-top: 14px; padding: 10px 24px; background: #555; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
-.loading { text-align: center; padding: 20px; color: #888; display: none; }
-.setup-section { margin-top: 8px; }
-.setup-label { font-size: 12px; color: #999; margin-bottom: 6px; }
-.setup-row { display: flex; gap: 8px; }
-.setup-row input { flex: 1; padding: 8px 10px; border: 1px solid #E0D8CC; border-radius: 6px; font-size: 12px; }
-.setup-row button { padding: 8px 12px; font-size: 12px; background: #278D27; }
-.saved-badge { font-size: 11px; color: #278D27; margin-top: 4px; display: none; }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;background:#1A0E00;min-height:100vh;display:flex;flex-direction:column;}
+.top{background:#F97D09;padding:14px 20px 12px;text-align:center;border-bottom:3px solid #278D27;}
+.top-title{color:#fff;font-size:16px;font-weight:700;letter-spacing:1px;}
+.top-sub{color:rgba(255,235,200,0.9);font-size:11px;margin-top:3px;}
+.main{flex:1;padding:20px 16px;display:flex;flex-direction:column;gap:14px;max-width:480px;margin:0 auto;width:100%;}
+.card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 16px rgba(0,0,0,0.4);}
+.card-title{font-size:12px;font-weight:700;color:#888;letter-spacing:1px;margin-bottom:12px;text-align:center;}
+input[type=text]{width:100%;padding:14px;border:2px solid #EDD8A8;border-radius:8px;font-size:18px;font-weight:700;text-align:center;letter-spacing:3px;color:#1A0E00;outline:none;text-transform:uppercase;}
+input[type=text]:focus{border-color:#F97D09;}
+.btn{width:100%;padding:15px;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;margin-top:10px;transition:opacity .2s;}
+.btn:active{opacity:0.8;}
+.btn-verify{background:#F97D09;color:#fff;}
+.btn-scan{background:#278D27;color:#fff;margin-top:8px;}
+.btn-stop{background:#333;color:#fff;border-radius:0 0 8px 8px;margin-top:0;padding:12px;}
+.btn-reset{background:#eee;color:#333;margin-top:14px;}
+#cam-wrap{display:none;border-radius:10px;overflow:hidden;position:relative;}
+#cam-wrap video{width:100%;display:block;max-height:280px;object-fit:cover;}
+.cam-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;border:3px solid #F97D09;border-radius:12px;box-shadow:0 0 0 1000px rgba(0,0,0,0.4);pointer-events:none;}
+.cam-label{position:absolute;bottom:40px;left:0;right:0;text-align:center;color:#fff;font-size:12px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,0.8);}
+#scanning{display:none;text-align:center;padding:30px 20px;color:#fff;}
+.spinner{width:48px;height:48px;border:4px solid rgba(249,125,9,0.3);border-top:4px solid #F97D09;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#result{display:none;border-radius:12px;padding:24px 20px;text-align:center;}
+#result.valid{background:#E8F5E9;border:3px solid #278D27;}
+#result.duplicate{background:#FFF3E0;border:3px solid #F97D09;}
+#result.invalid{background:#FFEBEE;border:3px solid #D32F2F;}
+.r-icon{font-size:56px;margin-bottom:10px;line-height:1;}
+.r-name{font-size:24px;font-weight:700;color:#1A0E00;margin-bottom:4px;}
+.r-table{font-size:20px;font-weight:700;margin-bottom:8px;}
+.r-msg{font-size:14px;color:#444;margin-bottom:4px;line-height:1.4;}
+.r-code{font-size:11px;color:#888;letter-spacing:1px;}
+.r-time{font-size:11px;color:#888;margin-top:4px;}
+#config-section{background:#222;border-radius:10px;padding:14px;}
+#config-section label{color:#aaa;font-size:11px;display:block;margin-bottom:5px;}
+#script-url{width:100%;padding:10px;border-radius:6px;border:1px solid #444;background:#333;color:#fff;font-size:12px;text-transform:none;letter-spacing:0;}
+.btn-save-url{background:#444;color:#fff;font-size:13px;padding:10px;margin-top:8px;}
+#url-status{color:#4CAF50;font-size:12px;margin-top:6px;text-align:center;display:none;font-weight:700;}
+.footer{background:#278D27;padding:5px;text-align:center;color:#fff;font-size:9px;letter-spacing:1px;font-weight:700;}
+.footer2{background:#F97D09;padding:5px;text-align:center;color:#fff;font-size:9px;letter-spacing:1px;font-weight:600;}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <h1>प्रबुद्ध नागरिक संवाद</h1>
-  <p>Gate Entry Scanner — 6 June 2026</p>
+<div class="top">
+  <div class="top-title">🔐 GATE ENTRY SCANNER</div>
+  <div class="top-sub">प्रबुद्ध नागरिक संवाद — 6 June 2026</div>
 </div>
 
-<div class="container">
+<div class="main">
 
-  <div class="result" id="result">
-    <div class="result-icon" id="result-icon"></div>
-    <div class="result-name" id="result-name"></div>
-    <div class="result-table" id="result-table"></div>
-    <div class="result-msg" id="result-msg"></div>
-    <div class="result-time" id="result-time"></div>
-    <button class="btn-reset" onclick="reset()">🔄 Next Guest</button>
+  <div class="card" id="input-card">
+    <div class="card-title">ENTRY CODE दर्ज करें या QR स्कैन करें</div>
+    <input type="text" id="code-input" placeholder="e.g. PNS7CHI..." autocomplete="off" autocorrect="off" autocapitalize="characters"/>
+    <button class="btn btn-verify" onclick="verifyManual()">✓ Verify Entry</button>
+    <button class="btn btn-scan" onclick="startScan()">📷 QR कोड स्कैन करें</button>
   </div>
 
-  <div class="loading" id="loading">⏳ Verifying...</div>
+  <div id="cam-wrap">
+    <video id="qr-video" playsinline muted></video>
+    <div class="cam-overlay"></div>
+    <div class="cam-label">QR code को बॉक्स में रखें</div>
+    <button class="btn btn-stop" onclick="stopScan()">✕ स्कैन बंद करें</button>
+  </div>
 
-  <div class="card" id="scanner-card">
-    <button class="btn-scan" id="btn-camera" onclick="toggleCamera()">📷 Scan QR Code</button>
-    <div id="video-container">
-      <video id="video" autoplay playsinline></video>
-    </div>
-    <div class="input-row">
-      <input type="text" id="code-input" placeholder="Enter Code (e.g. PNAB12)" maxlength="6" oninput="this.value=this.value.toUpperCase()"/>
-      <button onclick="verifyManual()">✓ Verify</button>
-    </div>
-    <div class="setup-section">
-      <div class="setup-label">Apps Script URL (saved locally)</div>
-      <div class="setup-row">
-        <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/.../exec"/>
-        <button onclick="saveUrl()">Save</button>
-      </div>
-      <div class="saved-badge" id="saved-badge">✓ URL Saved</div>
-    </div>
+  <div id="scanning">
+    <div class="spinner"></div>
+    <div style="font-size:16px;font-weight:700;">जांच हो रही है...</div>
+  </div>
+
+  <div id="result">
+    <div class="r-icon" id="r-icon"></div>
+    <div class="r-name" id="r-name"></div>
+    <div class="r-table" id="r-table"></div>
+    <div class="r-msg" id="r-msg"></div>
+    <div class="r-code" id="r-code"></div>
+    <div class="r-time" id="r-time"></div>
+    <button class="btn btn-reset" onclick="reset()">↺ अगला प्रवेशार्थी</button>
+  </div>
+
+  <div id="config-section">
+    <label>Apps Script URL (एक बार सेट करें)</label>
+    <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/.../exec" value="https://script.google.com/macros/s/AKfycbyfdz7qrMspomQftgaA240LcJG9wmA3XIYZReYbBMitEacgE2psAfIWT3AyzjJMu6pF3g/exec"/>
+    <button class="btn btn-save-url" onclick="saveUrl()">💾 Save URL</button>
+    <div id="url-status">✓ URL saved successfully!</div>
   </div>
 
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<div class="footer">भारत माता की जय</div>
+<div class="footer2">Carnival Banquet Hall | 6 June 2026 | 3:45 PM</div>
+
 <script>
-var DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbyfdz7qrMspomQftgaA240LcJG9wmA3XIYZReYbBMitEacgE2psAfIWT3AyzjJMu6pF3g/exec';
 var stream = null;
-var scanning = false;
 var scanInterval = null;
+var scanning = false;
+var verifyTimeout = null;
 
 window.onload = function() {
-  var saved = localStorage.getItem('scriptUrl');
-  if (saved) {
-    document.getElementById('script-url').value = saved;
-  } else {
-    document.getElementById('script-url').value = DEFAULT_URL;
-  }
+  var saved = localStorage.getItem('bjp_scanner_url');
+  if (saved) document.getElementById('script-url').value = saved;
 };
-
-function getScriptUrl() {
-  return localStorage.getItem('scriptUrl') || DEFAULT_URL;
-}
 
 function saveUrl() {
   var url = document.getElementById('script-url').value.trim();
-  if (url) {
-    localStorage.setItem('scriptUrl', url);
-    document.getElementById('saved-badge').style.display = 'block';
-    setTimeout(function() { document.getElementById('saved-badge').style.display = 'none'; }, 2000);
-  }
+  if (!url) { alert('URL दर्ज करें'); return; }
+  // Remove trailing slash if any
+  url = url.replace(/\/$/, '');
+  localStorage.setItem('bjp_scanner_url', url);
+  document.getElementById('url-status').style.display = 'block';
+  setTimeout(function(){ document.getElementById('url-status').style.display = 'none'; }, 3000);
 }
 
-function toggleCamera() {
-  var container = document.getElementById('video-container');
-  var btn = document.getElementById('btn-camera');
-  if (scanning) {
-    stopCamera();
-    btn.textContent = '📷 Scan QR Code';
-  } else {
-    startCamera();
-    btn.textContent = '⏹ Stop Camera';
-  }
-}
-
-function startCamera() {
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-    .then(function(s) {
-      stream = s;
-      scanning = true;
-      var video = document.getElementById('video');
-      video.srcObject = s;
-      document.getElementById('video-container').style.display = 'block';
-      scanInterval = setInterval(scanFrame, 300);
-    })
-    .catch(function(err) {
-      alert('Camera error: ' + err.message);
-    });
-}
-
-function stopCamera() {
-  scanning = false;
-  if (stream) { stream.getTracks().forEach(function(t) { t.stop(); }); stream = null; }
-  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
-  document.getElementById('video-container').style.display = 'none';
-}
-
-function scanFrame() {
-  var video = document.getElementById('video');
-  if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
-  var canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  var ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0);
-  var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  var code = jsQR(imageData.data, imageData.width, imageData.height);
-  if (code && code.data) {
-    stopCamera();
-    document.getElementById('btn-camera').textContent = '📷 Scan QR Code';
-    verify(code.data.trim().toUpperCase());
-  }
+function getScriptUrl() {
+  var url = localStorage.getItem('bjp_scanner_url') || document.getElementById('script-url').value.trim();
+  if (!url) { alert('कृपया पहले Apps Script URL save करें'); return null; }
+  return url.replace(/\/$/, '');
 }
 
 function verifyManual() {
   var code = document.getElementById('code-input').value.trim().toUpperCase();
-  if (!code) { alert('Please enter a code'); return; }
+  if (!code) { alert('कृपया Entry Code दर्ज करें'); return; }
   verify(code);
 }
 
 function verify(code) {
-  document.getElementById('loading').style.display = 'block';
-  document.getElementById('scanner-card').style.display = 'none';
+  var url = getScriptUrl();
+  if (!url) return;
 
-  var url = getScriptUrl() + '?action=verify&code=' + encodeURIComponent(code) + '&callback=handleResult';
+  stopScan();
+  document.getElementById('input-card').style.display = 'none';
+  document.getElementById('cam-wrap').style.display = 'none';
+  document.getElementById('scanning').style.display = 'block';
+  document.getElementById('result').style.display = 'none';
+
+  // Use JSONP to bypass CORS
+  var callbackName = 'bjpCallback_' + Date.now();
   var script = document.createElement('script');
-  script.src = url;
-  script.onerror = function() { showError('Network error. Please try again.'); };
-  document.body.appendChild(script);
 
-  setTimeout(function() {
-    if (document.getElementById('loading').style.display === 'block') {
-      showError('Request timed out. Please try again.');
-    }
-  }, 10000);
+  // Timeout after 15 seconds
+  verifyTimeout = setTimeout(function() {
+    cleanup(callbackName, script);
+    document.getElementById('scanning').style.display = 'none';
+    alert('Timeout — कृपया internet connection जांचें और दोबारा try करें।');
+    reset();
+  }, 15000);
+
+  window[callbackName] = function(data) {
+    cleanup(callbackName, script);
+    showResult(data);
+  };
+
+  script.onerror = function() {
+    cleanup(callbackName, script);
+    document.getElementById('scanning').style.display = 'none';
+    alert('Connection failed. Apps Script URL जांचें।');
+    reset();
+  };
+
+  script.src = url + '?action=verify&code=' + encodeURIComponent(code) + '&callback=' + callbackName;
+  document.head.appendChild(script);
 }
 
-function handleResult(data) {
-  document.getElementById('loading').style.display = 'none';
-  var result = document.getElementById('result');
-  result.className = 'result';
-  result.style.display = 'block';
+function cleanup(callbackName, script) {
+  if (verifyTimeout) { clearTimeout(verifyTimeout); verifyTimeout = null; }
+  if (window[callbackName]) delete window[callbackName];
+  if (script && script.parentNode) script.parentNode.removeChild(script);
+}
+
+function showResult(data) {
+  document.getElementById('scanning').style.display = 'none';
+  var box = document.getElementById('result');
+  box.className = 'result';
 
   if (data.result === 'valid') {
-    result.classList.add('valid');
-    document.getElementById('result-icon').textContent = '✅';
-    document.getElementById('result-name').textContent = data.name;
-    document.getElementById('result-name').style.color = '#1B5E20';
-    document.getElementById('result-table').textContent = 'Table No: ' + data.table;
-    document.getElementById('result-table').style.color = '#278D27';
-    document.getElementById('result-msg').textContent = 'Entry Approved';
-    document.getElementById('result-time').textContent = data.time;
+    box.classList.add('valid');
+    document.getElementById('r-icon').innerText = '✅';
+    document.getElementById('r-name').innerText = data.name + ' Ji';
+    document.getElementById('r-table').innerHTML = '<span style="color:#278D27;font-weight:700;">Table No. ' + data.table + '</span>';
+    document.getElementById('r-msg').innerText = 'प्रवेश स्वीकृत — स्वागत है!';
+    document.getElementById('r-code').innerText = 'Code: ' + data.code;
+    document.getElementById('r-time').innerText = 'Scanned: ' + data.time;
   } else if (data.result === 'duplicate') {
-    result.classList.add('duplicate');
-    document.getElementById('result-icon').textContent = '⚠️';
-    document.getElementById('result-name').textContent = data.name;
-    document.getElementById('result-name').style.color = '#E65100';
-    document.getElementById('result-table').textContent = '';
-    document.getElementById('result-msg').textContent = 'Already Scanned';
-    document.getElementById('result-time').textContent = 'Scanned at: ' + data.scannedAt;
-  } else if (data.result === 'rejected') {
-    result.classList.add('invalid');
-    document.getElementById('result-icon').textContent = '❌';
-    document.getElementById('result-name').textContent = data.name || 'Unknown';
-    document.getElementById('result-name').style.color = '#B71C1C';
-    document.getElementById('result-table').textContent = '';
-    document.getElementById('result-msg').textContent = 'Not Approved';
-    document.getElementById('result-time').textContent = '';
+    box.classList.add('duplicate');
+    document.getElementById('r-icon').innerText = '⚠️';
+    document.getElementById('r-name').innerText = data.name || '';
+    document.getElementById('r-table').innerText = '';
+    document.getElementById('r-msg').innerText = data.message;
+    document.getElementById('r-code').innerText = '';
+    document.getElementById('r-time').innerText = 'पूर्व में स्कैन: ' + (data.scannedAt || '');
   } else {
-    result.classList.add('invalid');
-    document.getElementById('result-icon').textContent = '❌';
-    document.getElementById('result-name').textContent = 'Code Not Found';
-    document.getElementById('result-name').style.color = '#B71C1C';
-    document.getElementById('result-table').textContent = '';
-    document.getElementById('result-msg').textContent = 'Invalid Entry Code';
-    document.getElementById('result-time').textContent = '';
+    box.classList.add('invalid');
+    document.getElementById('r-icon').innerText = '❌';
+    document.getElementById('r-name').innerText = data.name || 'अज्ञात';
+    document.getElementById('r-table').innerText = '';
+    document.getElementById('r-msg').innerText = data.message || 'कोड नहीं मिला';
+    document.getElementById('r-code').innerText = '';
+    document.getElementById('r-time').innerText = '';
   }
-}
-
-function showError(msg) {
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('scanner-card').style.display = 'block';
-  alert(msg);
+  box.style.display = 'block';
 }
 
 function reset() {
   document.getElementById('result').style.display = 'none';
-  document.getElementById('scanner-card').style.display = 'block';
+  document.getElementById('scanning').style.display = 'none';
+  document.getElementById('cam-wrap').style.display = 'none';
+  document.getElementById('input-card').style.display = 'block';
   document.getElementById('code-input').value = '';
-  document.getElementById('loading').style.display = 'none';
+  document.getElementById('code-input').focus();
 }
+
+function startScan() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Camera support नहीं है। कृपया code manually type करें।');
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+  })
+  .then(function(s) {
+    stream = s;
+    var video = document.getElementById('qr-video');
+    video.srcObject = s;
+    video.play();
+    document.getElementById('cam-wrap').style.display = 'block';
+    document.getElementById('input-card').style.display = 'none';
+    scanning = true;
+    scanInterval = setInterval(function() {
+      if (!scanning || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+      var canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+      var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+      if (code && code.data) {
+        scanning = false;
+        verify(code.data.trim().toUpperCase());
+      }
+    }, 300);
+  })
+  .catch(function(err) {
+    if (err.name === 'NotAllowedError') {
+      alert('Camera permission blocked.\n\nSettings → Chrome → Camera → Allow\n\nफिर page reload करें।');
+    } else {
+      alert('Camera error: ' + err.message + '\n\nकृपया code manually type करें।');
+    }
+  });
+}
+
+function stopScan() {
+  scanning = false;
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+  if (stream) { stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
+  document.getElementById('cam-wrap').style.display = 'none';
+  document.getElementById('input-card').style.display = 'block';
+}
+
+document.getElementById('code-input').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') verifyManual();
+});
 </script>
 </body>
 </html>
