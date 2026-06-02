@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>प्रबुद्ध नागरिक संवाद — Gate Scanner</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #F5F0E8; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+.header { width: 100%; background: #F97D09; padding: 14px 20px; text-align: center; border-bottom: 4px solid #278D27; }
+.header h1 { color: #fff; font-size: 18px; font-weight: 700; }
+.header p { color: rgba(255,255,255,0.85); font-size: 12px; margin-top: 3px; }
+.container { width: 100%; max-width: 480px; padding: 20px 16px; }
+.card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 16px; }
+.input-row { display: flex; gap: 10px; margin-bottom: 12px; }
+input[type=text] { flex: 1; padding: 12px 14px; border: 2px solid #E0D8CC; border-radius: 8px; font-size: 16px; letter-spacing: 2px; text-transform: uppercase; outline: none; }
+input[type=text]:focus { border-color: #F97D09; }
+button { padding: 12px 18px; background: #F97D09; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
+button:active { background: #d96a00; }
+.btn-scan { width: 100%; padding: 14px; background: #278D27; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 8px; }
+.btn-scan:active { background: #1e6e1e; }
+#video-container { display: none; margin-bottom: 12px; }
+video { width: 100%; border-radius: 8px; border: 2px solid #E0D8CC; }
+.result { border-radius: 12px; padding: 20px; text-align: center; display: none; margin-bottom: 16px; }
+.result.valid { background: #E8F5E9; border: 2px solid #278D27; }
+.result.duplicate { background: #FFF8E1; border: 2px solid #F97D09; }
+.result.invalid { background: #FFEBEE; border: 2px solid #C62828; }
+.result-icon { font-size: 48px; margin-bottom: 10px; }
+.result-name { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.result-table { font-size: 16px; margin-bottom: 4px; }
+.result-msg { font-size: 13px; color: #666; }
+.result-time { font-size: 12px; color: #999; margin-top: 6px; }
+.btn-reset { margin-top: 14px; padding: 10px 24px; background: #555; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
+.loading { text-align: center; padding: 20px; color: #888; display: none; }
+.setup-section { margin-top: 8px; }
+.setup-label { font-size: 12px; color: #999; margin-bottom: 6px; }
+.setup-row { display: flex; gap: 8px; }
+.setup-row input { flex: 1; padding: 8px 10px; border: 1px solid #E0D8CC; border-radius: 6px; font-size: 12px; }
+.setup-row button { padding: 8px 12px; font-size: 12px; background: #278D27; }
+.saved-badge { font-size: 11px; color: #278D27; margin-top: 4px; display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>प्रबुद्ध नागरिक संवाद</h1>
+  <p>Gate Entry Scanner — 6 June 2026</p>
+</div>
+
+<div class="container">
+
+  <div class="result" id="result">
+    <div class="result-icon" id="result-icon"></div>
+    <div class="result-name" id="result-name"></div>
+    <div class="result-table" id="result-table"></div>
+    <div class="result-msg" id="result-msg"></div>
+    <div class="result-time" id="result-time"></div>
+    <button class="btn-reset" onclick="reset()">🔄 Next Guest</button>
+  </div>
+
+  <div class="loading" id="loading">⏳ Verifying...</div>
+
+  <div class="card" id="scanner-card">
+    <button class="btn-scan" id="btn-camera" onclick="toggleCamera()">📷 Scan QR Code</button>
+    <div id="video-container">
+      <video id="video" autoplay playsinline></video>
+    </div>
+    <div class="input-row">
+      <input type="text" id="code-input" placeholder="Enter Code (e.g. PNAB12)" maxlength="6" oninput="this.value=this.value.toUpperCase()"/>
+      <button onclick="verifyManual()">✓ Verify</button>
+    </div>
+    <div class="setup-section">
+      <div class="setup-label">Apps Script URL (saved locally)</div>
+      <div class="setup-row">
+        <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/.../exec"/>
+        <button onclick="saveUrl()">Save</button>
+      </div>
+      <div class="saved-badge" id="saved-badge">✓ URL Saved</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script>
+var DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbyfdz7qrMspomQftgaA240LcJG9wmA3XIYZReYbBMitEacgE2psAfIWT3AyzjJMu6pF3g/exec';
+var stream = null;
+var scanning = false;
+var scanInterval = null;
+
+window.onload = function() {
+  var saved = localStorage.getItem('scriptUrl');
+  if (saved) {
+    document.getElementById('script-url').value = saved;
+  } else {
+    document.getElementById('script-url').value = DEFAULT_URL;
+  }
+};
+
+function getScriptUrl() {
+  return localStorage.getItem('scriptUrl') || DEFAULT_URL;
+}
+
+function saveUrl() {
+  var url = document.getElementById('script-url').value.trim();
+  if (url) {
+    localStorage.setItem('scriptUrl', url);
+    document.getElementById('saved-badge').style.display = 'block';
+    setTimeout(function() { document.getElementById('saved-badge').style.display = 'none'; }, 2000);
+  }
+}
+
+function toggleCamera() {
+  var container = document.getElementById('video-container');
+  var btn = document.getElementById('btn-camera');
+  if (scanning) {
+    stopCamera();
+    btn.textContent = '📷 Scan QR Code';
+  } else {
+    startCamera();
+    btn.textContent = '⏹ Stop Camera';
+  }
+}
+
+function startCamera() {
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(function(s) {
+      stream = s;
+      scanning = true;
+      var video = document.getElementById('video');
+      video.srcObject = s;
+      document.getElementById('video-container').style.display = 'block';
+      scanInterval = setInterval(scanFrame, 300);
+    })
+    .catch(function(err) {
+      alert('Camera error: ' + err.message);
+    });
+}
+
+function stopCamera() {
+  scanning = false;
+  if (stream) { stream.getTracks().forEach(function(t) { t.stop(); }); stream = null; }
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+  document.getElementById('video-container').style.display = 'none';
+}
+
+function scanFrame() {
+  var video = document.getElementById('video');
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+  var canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  var code = jsQR(imageData.data, imageData.width, imageData.height);
+  if (code && code.data) {
+    stopCamera();
+    document.getElementById('btn-camera').textContent = '📷 Scan QR Code';
+    verify(code.data.trim().toUpperCase());
+  }
+}
+
+function verifyManual() {
+  var code = document.getElementById('code-input').value.trim().toUpperCase();
+  if (!code) { alert('Please enter a code'); return; }
+  verify(code);
+}
+
+function verify(code) {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('scanner-card').style.display = 'none';
+
+  var url = getScriptUrl() + '?action=verify&code=' + encodeURIComponent(code) + '&callback=handleResult';
+  var script = document.createElement('script');
+  script.src = url;
+  script.onerror = function() { showError('Network error. Please try again.'); };
+  document.body.appendChild(script);
+
+  setTimeout(function() {
+    if (document.getElementById('loading').style.display === 'block') {
+      showError('Request timed out. Please try again.');
+    }
+  }, 10000);
+}
+
+function handleResult(data) {
+  document.getElementById('loading').style.display = 'none';
+  var result = document.getElementById('result');
+  result.className = 'result';
+  result.style.display = 'block';
+
+  if (data.result === 'valid') {
+    result.classList.add('valid');
+    document.getElementById('result-icon').textContent = '✅';
+    document.getElementById('result-name').textContent = data.name;
+    document.getElementById('result-name').style.color = '#1B5E20';
+    document.getElementById('result-table').textContent = 'Table No: ' + data.table;
+    document.getElementById('result-table').style.color = '#278D27';
+    document.getElementById('result-msg').textContent = 'Entry Approved';
+    document.getElementById('result-time').textContent = data.time;
+  } else if (data.result === 'duplicate') {
+    result.classList.add('duplicate');
+    document.getElementById('result-icon').textContent = '⚠️';
+    document.getElementById('result-name').textContent = data.name;
+    document.getElementById('result-name').style.color = '#E65100';
+    document.getElementById('result-table').textContent = '';
+    document.getElementById('result-msg').textContent = 'Already Scanned';
+    document.getElementById('result-time').textContent = 'Scanned at: ' + data.scannedAt;
+  } else if (data.result === 'rejected') {
+    result.classList.add('invalid');
+    document.getElementById('result-icon').textContent = '❌';
+    document.getElementById('result-name').textContent = data.name || 'Unknown';
+    document.getElementById('result-name').style.color = '#B71C1C';
+    document.getElementById('result-table').textContent = '';
+    document.getElementById('result-msg').textContent = 'Not Approved';
+    document.getElementById('result-time').textContent = '';
+  } else {
+    result.classList.add('invalid');
+    document.getElementById('result-icon').textContent = '❌';
+    document.getElementById('result-name').textContent = 'Code Not Found';
+    document.getElementById('result-name').style.color = '#B71C1C';
+    document.getElementById('result-table').textContent = '';
+    document.getElementById('result-msg').textContent = 'Invalid Entry Code';
+    document.getElementById('result-time').textContent = '';
+  }
+}
+
+function showError(msg) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('scanner-card').style.display = 'block';
+  alert(msg);
+}
+
+function reset() {
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('scanner-card').style.display = 'block';
+  document.getElementById('code-input').value = '';
+  document.getElementById('loading').style.display = 'none';
+}
+</script>
+</body>
+</html>
